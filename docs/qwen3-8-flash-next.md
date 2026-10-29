@@ -201,6 +201,52 @@ A model converted with its table needs no `--ngram-table`. `ninfer` and `ninfer-
 the same options, and the Docker image's `serve` command takes them with the files under `/models`
 ([launch recipes](recipes.md#qwen38-flash-next)).
 
+**Windows launcher: 16 GiB VRAM, 64 GiB RAM**
+
+Run [`scripts\run-qwen-next-16gb.bat`](../scripts/run-qwen-next-16gb.bat) from the directory
+containing `ninfer-serve.exe` and its runtime DLLs. It offers IQ3_S, Coder IQ1_M or Q2_0, checks for
+nonempty artifacts in that directory's `models` subfolder, and asks before downloading missing
+files with `hf` on PATH. The n-gram table is downloaded once and shared. Existing nonempty files
+are not checksummed; the Engine still validates artifact structure and model/table binding.
+
+```bat
+scripts\run-qwen-next-16gb.bat
+scripts\run-qwen-next-16gb.bat iq3_s
+scripts\run-qwen-next-16gb.bat q2_0
+scripts\run-qwen-next-16gb.bat coder --dry-run
+```
+
+The quality-first defaults are one request, 40,960-token context and KV capacity, BF16 KV,
+2,048-token prompt chunks, a 512 MiB host context-cache budget, text only and no speculation.
+Experts stream from disk into an automatic GPU cache, with automatic CPU/GPU miss sharing and
+the engine's default physical-core thread count. The n-gram table uses buffered disk reads without
+an extra application row cache. BF16 avoids additional KV quantization. Set `NINFER_CONTEXT`,
+`NINFER_PREFILL_CHUNK` or `NINFER_SPEC=none|mtp` to override those settings; MTP selects three
+drafts with the 0.5 probability floor.
+
+The [5070 Ti benchmark](../bench/README.md#windows-flash-next-rtx-5070-ti-40k-context)
+measured IQ3_S with a 16 GiB RTX 5070 Ti, i7-9850H and **96 GiB host RAM**, on a PCIe 3.0 x4
+link under load. Plain decode beat MTP on the short screen. With an 8,192-token prompt,
+2,048-token chunks reduced TTFT from 203 to 139 seconds but decoded 9.1% slower than 512-token
+chunks (one run each). A 40,816-token prompt completed with BF16 KV and 2,048-token chunks:
+360 seconds to first token, 4.36 tok/s decode. It returned the three correct access-code mappings,
+but wrapped its JSON in Markdown fences and **failed** the strict JSON check.
+This is a retrieval smoke test, not general long-context quality qualification. The benchmark
+disables prefix reuse; the launcher retains a bounded context cache. Coder and 64 GiB host
+performance have not been measured, and Q2_0 has not had the full-window test.
+For mostly short chats, compare `NINFER_PREFILL_CHUNK=512` rather than assuming the larger chunk
+is universally faster.
+
+Use a local SSD, preferably NVMe: IQ3_S plus its table occupies about 81.42 GiB, more than
+64 GiB RAM can cache. Q2_0 plus its table occupies about 65.41 GiB, while Coder plus its table
+occupies about 57.94 GiB before runtime and OS memory. Windows uses spare RAM as its file cache
+rather than pinning the full expert banks or
+loading the full table. This avoids the large pinned-host allocation that WDDM charges against
+the GPU's memory budget; it does not guarantee fit or speed on every 16 GiB card.
+Cold reads and competing memory use can slow generation. Close other GPU-heavy applications;
+the launcher binds only to `127.0.0.1:8080`. See [Windows memory behavior](build-windows.md#build)
+and the I/O qualification limits under [the n-gram rows](#the-n-gram-rows).
+
 | Option | Meaning |
 |---|---|
 | `--expert-residency device\|host\|disk` | expert banks in the stage devices' memory (default); in page-locked host memory that the expert kernels read across the bus; or left in the artifact's files, each layer's routed experts read into a device cache before they run |
