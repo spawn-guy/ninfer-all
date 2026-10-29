@@ -22,7 +22,8 @@ if(NOT _ninfer_vcpkg_tree)
   return()
 endif()
 
-set(FFMPEG_VCPKG_TREE "${_ninfer_vcpkg_tree}")
+# FPHSA evaluates failure messages as CMake code; raw Windows backslashes become escapes.
+file(TO_CMAKE_PATH "${_ninfer_vcpkg_tree}" FFMPEG_VCPKG_TREE)
 
 set(_ffmpeg_needed avformat avcodec avutil swscale)
 set(_ffmpeg_libs_found TRUE)
