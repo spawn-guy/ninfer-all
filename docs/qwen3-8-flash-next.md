@@ -33,6 +33,14 @@ tower), and MTP speculative decoding (`--spec mtp`). The three published NInfer 
 include Unsloth's shared-Q8_0 MTP block. The upstream GSQ-RCO GGUF sources omit it, so new
 conversions must supply it separately; see [MTP](#mtp-speculative-decoding).
 
+## Download
+```bash
+hf download WaveCut/Qwen3.8-Flash-Next-ngram-table-NInfer-v3 Qwen3.8-Flash-Next-ngram-table-IQ4_NL-ninfer-v3.ninfer --local-dir models
+hf download WaveCut/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-NInfer-v3 Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-ninfer-v3.ninfer --local-dir models
+hf download WaveCut/Qwen3.8-Flash-Next-GSQ-RCO-Coder-IQ1_M-NInfer-v3 Qwen3.8-Flash-Next-GSQ-RCO-Coder-IQ1_M-ninfer-v3.ninfer --local-dir models
+
+```
+
 ## Convert
 
 `--model` needs only the HF checkpoint's configuration and tokenizer files (`config.json`,
