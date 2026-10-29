@@ -78,6 +78,28 @@ finds FFmpeg there, and the build stages the triplet's DLLs beside every executa
 configure without the toolchain and without `NINFER_VCPKG_TREE` reads the classic tree that the
 `VCPKG_ROOT` and `VCPKG_TARGET_TRIPLET` environment variables name.
 
+This prebuilt-tree route does not install `vcpkg.json` automatically. Before configuring,
+install the manifest dependencies from the repository root into the tree it reads:
+
+```powershell
+# Run these from the ninfer-all repository root:
+& C:\vcpkg\vcpkg.exe install --triplet x64-windows --x-install-root=C:\vcpkg\installed
+.\scripts\build-native.bat configure
+```
+
+Use the same root and triplet as `NINFER_VCPKG_ROOT` and `NINFER_VCPKG_TRIPLET` if overridden.
+The explicit install root matters: manifest mode otherwise installs into `vcpkg_installed`
+inside the checkout, which this prebuilt-tree route does not read. A "vcpkg tree lacks ffmpeg"
+error means the selected tree is missing the required FFmpeg import libraries or headers;
+installing only an `ffmpeg.exe` command-line binary does not supply them.
+
+C:\vcpkg is the script’s default location, but vcpkg isn’t installed there. 
+Install and bootstrap it first, then install the dependencies:
+```powershell
+git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+& C:\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+```
+
 A standalone `.cu` probe outside the build tree can be compiled with `nvcc` directly from
 PowerShell (Git Bash rewrites MSVC-style flags into paths). Keep probe builds out of the
 repository root: `nvcc` writes `.exp` and `.lib` files next to the output.
